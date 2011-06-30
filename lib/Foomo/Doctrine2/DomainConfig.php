@@ -1,14 +1,43 @@
 <?php
 
+/*
+ * This file is part of the foomo Opensource Framework.
+ *
+ * The foomo Opensource Framework is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public License as
+ * published  by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * The foomo Opensource Framework is distributed in the hope that it will
+ * be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along with
+ * the foomo Opensource Framework. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 namespace Foomo\Doctrine2;
 
-use Foomo\Config\AbstractConfig;
+/**
+ * @link www.foomo.org
+ * @license www.gnu.org/licenses/lgpl.txt
+ * @author jan <jan@bestbytes.de>
+ */
+class DomainConfig extends \Foomo\Config\AbstractConfig
+{
+	//---------------------------------------------------------------------------------------------
+	// ~ Constants
+	//---------------------------------------------------------------------------------------------
 
-class DomainConfig extends AbstractConfig {
 	/**
 	 * The name of the doctrine 2 domain configuration
 	 */
 	const NAME = 'Foomo.doctrine2';
+
+	//---------------------------------------------------------------------------------------------
+	// ~ Variables
+	//---------------------------------------------------------------------------------------------
 
 	/**
 	 * Entity manager using configuration
@@ -16,11 +45,6 @@ class DomainConfig extends AbstractConfig {
 	 * @var \Doctrine\ORM\EntityManager
 	 */
 	private $entityManager;
-	/**
-	 * The proxy directory
-	 *
-	 * @var string
-	 */
 	/**
 	 * namespace for entity classes
 	 *
@@ -52,6 +76,7 @@ class DomainConfig extends AbstractConfig {
 	public $generateProxyClasses = false;
 	/**
 	 * Implementation of the metadata driver. Select from:
+	 *
 	 * - \Doctrine\ORM\Mapping\Driver\AnnotationDriver
 	 * - \Doctrine\ORM\Mapping\Driver\XmlDriver
 	 * - \Doctrine\ORM\Mapping\Driver\YamlDriver
@@ -77,25 +102,23 @@ class DomainConfig extends AbstractConfig {
 	 * \Doctrine\Common\Cache\ApcCache
 	 * \Doctrine\Common\Cache\MemcacheCache
 	 * \Doctrine\Common\Cache\XcacheCache
-
+	 *
 	 * If not set, caching is disabled
 	 *
 	 * @var string
 	 */
 	public $cacheImplementation = '\Doctrine\Common\Cache\ApcCache';
-
-	/*
+	/**
 	 * query cache implementation - optional
 	 * Select from:
 	 * \Doctrine\Common\Cache\ApcCache
 	 * \Doctrine\Common\Cache\MemcacheCache
 	 * \Doctrine\Common\Cache\XcacheCache
-
-	  @var string
+	 *
+	 * @var string
 	 */
 	public $queryCacheImplementation = '\Doctrine\Common\Cache\ApcCache';
-
-	/*
+	/**
 	 * sqlLogger implementation - optional.
 	 * Is a class that implements the Doctrine\DBAL\Logging\SqlLogger interface
 	 * For example:
@@ -113,7 +136,7 @@ class DomainConfig extends AbstractConfig {
 	/**
 	 * if true, the db scema will be exported if database not exists
 	 *
-	 * @var boolean 
+	 * @var boolean
 	 */
 	public $autoExportSchema = false;
 	/**
@@ -122,6 +145,22 @@ class DomainConfig extends AbstractConfig {
 	 * @var boolean
 	 */
 	public $createDbIfNotExists = true;
+
+	//---------------------------------------------------------------------------------------------
+	// ~ Constructor
+	//---------------------------------------------------------------------------------------------
+
+	/**
+	 * constructor. does nothing.
+	 */
+	public function __construct()
+	{
+
+	}
+
+	//---------------------------------------------------------------------------------------------
+	// ~ Public methods
+	//---------------------------------------------------------------------------------------------
 
 	/**
 	 * get a db connection
@@ -165,19 +204,9 @@ class DomainConfig extends AbstractConfig {
 	}
 
 	/**
-	 * constructor. does nothing.
-	 */
-	public function __construct()
-	{
-		
-	}
-
-	/**
 	 * return entity manager for this domain configuration
 	 *
-	 * @param $forceCreateNew boolean forces the creation of a new entity
-	 * manager using a new db connection
-	 *
+	 * @param $forceCreateNew boolean forces the creation of a new entity manager using a new db connection
 	 * @return \Doctrine\ORM\EntityManager
 	 */
 	public function getEntityManager($forceCreateNew = false)
@@ -310,6 +339,9 @@ class DomainConfig extends AbstractConfig {
 		$this->getEntityManager(true);
 	}
 
+	/**
+	 * @return string
+	 */
 	public function getDoctrineProxyDir()
 	{
 		//var_dump(\Foomo\CORE_CONFIG_DIR_MODULES . DIRECTORY_SEPARATOR . $this->proxyDir);
@@ -318,7 +350,7 @@ class DomainConfig extends AbstractConfig {
 
 	/**
 	 * exports schemas if db not exists
-	 * 
+	 *
 	 * note: the db must exist at the time of the call
 	 */
 	public function exportSchema()
@@ -345,6 +377,33 @@ class DomainConfig extends AbstractConfig {
 		$em = $this->getEntityManager(true);
 	}
 
+	/**
+	 * get the configuration array
+	 *
+	 * @internal
+	 * @return array
+	 */
+	public function getValue()
+	{
+		$ret = array();
+		foreach ($this as $prop => $value) {
+			switch ($prop) {
+				case 'entityManager':
+					continue;
+				default:
+					$ret[$prop] = $value;
+			}
+		}
+		return $ret;
+	}
+
+	//---------------------------------------------------------------------------------------------
+	// ~ Private methods
+	//---------------------------------------------------------------------------------------------
+
+	/**
+	 * @return array
+	 */
 	private function getOwnClasses()
 	{
 		$classes = array();
@@ -354,7 +413,7 @@ class DomainConfig extends AbstractConfig {
 			if (\strpos($file, $this->proxyDir) != false) {
 				continue;
 			}
-			
+
 			$needle = $this->entityDir;
 			// remove leading backslash if any
 			if (\substr($needle, 0, 1) == "\\") {
@@ -420,7 +479,7 @@ class DomainConfig extends AbstractConfig {
 	 * @param string $userName
 	 *
 	 * @param string $password
-	 * 
+	 *
 	 * @return boolean
 	 */
 	private function databaseExists($databaseName, $serverName, $userName, $password)
@@ -441,6 +500,13 @@ class DomainConfig extends AbstractConfig {
 		}
 	}
 
+	//---------------------------------------------------------------------------------------------
+	// ~ Magic methods
+	//---------------------------------------------------------------------------------------------
+
+	/**
+	 * @return string[]
+	 */
 	public function __sleep()
 	{
 		return array(
@@ -458,24 +524,4 @@ class DomainConfig extends AbstractConfig {
 			'createDbIfNotExists'
 		);
 	}
-
-	/**
-	 * get the configuration array
-	 * @internal
-	 * @return array
-	 */
-	public function getValue()
-	{
-		$ret = array();
-		foreach ($this as $prop => $value) {
-			switch ($prop) {
-				case 'entityManager':
-					continue;
-				default:
-					$ret[$prop] = $value;
-			}
-		}
-		return $ret;
-	}
-
 }
