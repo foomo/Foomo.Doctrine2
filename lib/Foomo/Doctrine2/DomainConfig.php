@@ -22,10 +22,9 @@ namespace Foomo\Doctrine2;
 /**
  * @link www.foomo.org
  * @license www.gnu.org/licenses/lgpl.txt
- * @author jan <jan@bestbytes.de>
+ * @author bostjan <bostjan.marusic@bestbytes.de>
  */
-class DomainConfig extends \Foomo\Config\AbstractConfig
-{
+class DomainConfig extends \Foomo\Config\AbstractConfig {
 	//---------------------------------------------------------------------------------------------
 	// ~ Constants
 	//---------------------------------------------------------------------------------------------
@@ -145,6 +144,16 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 * @var boolean
 	 */
 	public $createDbIfNotExists = true;
+	/**
+	 * cache for tablenames
+	 * @var array 
+	 */
+	private $tableNames;
+	/**
+	 * cache of model metadata
+	 * @var array 
+	 */
+	private $classes;
 
 	//---------------------------------------------------------------------------------------------
 	// ~ Constructor
@@ -153,9 +162,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	/**
 	 * constructor. does nothing.
 	 */
-	public function __construct()
-	{
-
+	public function __construct() {
+		$this->getEntityManager();
 	}
 
 	//---------------------------------------------------------------------------------------------
@@ -169,8 +177,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 *
 	 * @return Doctrine\DBAL\Connection
 	 */
-	public function getConnection()
-	{
+	public function getConnection() {
 
 		$type = null;
 		if (isset($this->dsn)) {
@@ -209,12 +216,16 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 * @param $forceCreateNew boolean forces the creation of a new entity manager using a new db connection
 	 * @return \Doctrine\ORM\EntityManager
 	 */
-	public function getEntityManager($forceCreateNew = false)
-	{
+	public function getEntityManager($forceCreateNew = false) {
 
 		//if forcing new entity manager, release the old connection first
 		if ($forceCreateNew == true && isset($this->entityManager)) {
-			$this->entityManager->getConnection()->close();
+			try {
+				$this->entityManager->getConnection()->close();
+				$this->entityManager->close();
+			} catch (\Exception $e) {
+				trigger_error(__METHOD__ . $e->getMessage(), \E_USER_WARNING);
+			}
 		}
 
 
@@ -334,16 +345,14 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 * due to exception etc
 	 *
 	 */
-	public function resetEntityManager()
-	{
+	public function resetEntityManager() {
 		$this->getEntityManager(true);
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getDoctrineProxyDir()
-	{
+	public function getDoctrineProxyDir() {
 		//var_dump(\Foomo\CORE_CONFIG_DIR_MODULES . DIRECTORY_SEPARATOR . $this->proxyDir);
 		return \Foomo\CORE_CONFIG_DIR_MODULES . DIRECTORY_SEPARATOR . $this->proxyDir;
 	}
@@ -353,8 +362,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 *
 	 * note: the db must exist at the time of the call
 	 */
-	public function exportSchema()
-	{
+	public function exportSchema() {
 		//if ($this->databaseExists($databaseName, $serverName, $userName, $password);
 		$classes = $this->getOwnClasses();
 		$tool = new \Doctrine\ORM\Tools\SchemaTool($this->entityManager);
@@ -367,8 +375,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 * drop the scema if it exists
 	 *
 	 */
-	public function dropSchema()
-	{
+	public function dropSchema() {
 		$this->entityManager = $this->getEntityManager();
 		$classes = $this->getOwnClasses();
 		$tool = new \Doctrine\ORM\Tools\SchemaTool($this->entityManager);
@@ -383,8 +390,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 * @internal
 	 * @return array
 	 */
-	public function getValue()
-	{
+	public function getValue() {
 		$ret = array();
 		foreach ($this as $prop => $value) {
 			switch ($prop) {
@@ -397,6 +403,85 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 		return $ret;
 	}
 
+	/**
+	 * Validate the schema definitions in our model classes.
+	 * @return boolean true if the schema definitions are valid
+	 */
+	public function validateSchema() {
+		$validator = new \Doctrine\ORM\Tools\SchemaValidator($this->getEntityManager());
+		$errors = $validator->validateMapping();
+		if (count($errors) > 0) {
+			// Lots of errors!
+			\trigger_error(implode("\n\n", $errors), \E_USER_WARNING);
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Returns an array of Metadata of all model classes.
+	 * @return \Doctrine\ORM\Mapping\ClassMetadata[] array of metadata information for each model class
+	 */
+	public function getModelClasses() {
+		if (!isset($this->classes)) {
+			$this->classes = array();
+			$factory = new \Doctrine\ORM\Mapping\ClassMetadataFactory();
+			$factory->setEntityManager($this->getEntityManager());
+			$this->classes = $factory->getAllMetadata();
+		}
+		return $this->classes;
+	}
+
+	/**
+	 * Deletes the contents of all tables. Use it for tests only!
+	 * @note the entity manager is closed finally, so any references got by a former call of self::getEM() are obsolet now
+	 */
+	public function truncateTables() {
+		if (empty($this->tableNames)) {
+			$this->tableNames = array();
+			foreach ($this->getModelClasses() as $classMetadata) {
+				/* @var $classMetadata \Doctrine\ORM\Mapping\ClassMetadata */
+				$tableName = $classMetadata->table['name'];
+				foreach ($classMetadata->associationMappings as $am) {
+					if (isset($am['joinTable'])) {
+						$jt = $am['joinTable'];
+						if (isset($jt['name']) && !in_array($jt['name'], $this->tableNames)) {
+							$this->tableNames[] = $jt['name'];
+						}
+					}
+				}
+				if (!in_array($tableName, $this->tableNames)) {
+					$this->tableNames[] = $tableName;
+				}
+			}
+		}
+
+
+		$conn = $this->entityManager->getConnection();
+		$conn->executeQuery("SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0");
+		foreach ($this->tableNames as $tableName) {
+			$query = "TRUNCATE TABLE $tableName";
+			//file_put_contents('/tmp/db.log', "about to execute '$query'", FILE_APPEND);
+			try {
+				$conn->executeQuery($query);
+				//file_put_contents('/tmp/db.log', "... executed" . PHP_EOL, FILE_APPEND);
+			} catch (\Exception $e) {
+				//file_put_contents('/tmp/db.log', "... failed" . PHP_EOL, FILE_APPEND);
+			}
+		}
+		$conn->executeQuery("SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS");
+		$this->entityManager->close();
+		$this->getEntityManager(true);
+	}
+
+	/**
+	 * Creates proxy classes for all entities (model classes)
+	 */
+	public static function createProxies() {
+		$factory = $this->entityManager->getProxyFactory();
+		$factory->generateProxyClasses($this->getModelClasses());
+	}
+
 	//---------------------------------------------------------------------------------------------
 	// ~ Private methods
 	//---------------------------------------------------------------------------------------------
@@ -404,8 +489,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	/**
 	 * @return array
 	 */
-	private function getOwnClasses()
-	{
+	private function getOwnClasses() {
 		$classes = array();
 		$classMap = \Foomo\AutoLoader::getClassMap();
 		foreach ($classMap as $className => $file) {
@@ -413,7 +497,6 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 			if (\strpos($file, $this->proxyDir) != false) {
 				continue;
 			}
-
 			$needle = $this->entityDir;
 			// remove leading backslash if any
 			if (\substr($needle, 0, 1) == "\\") {
@@ -433,8 +516,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 *
 	 * @return Doctrine\DBAL\Connection
 	 */
-	private function parseConfig($dsn, &$serverName, &$dbName, &$username, &$password)
-	{
+	private function parseConfig($dsn, &$serverName, &$dbName, &$username, &$password) {
 		$parsed = \parse_url($dsn);
 		$type = $parsed['scheme'];
 		if ($parsed['scheme'] != 'mysql')
@@ -453,8 +535,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 *
 	 * @param string $databaseName
 	 */
-	private function createMySQLDatabaseIfNotExists($databaseName, $serverName, $userName, $password)
-	{
+	private function createMySQLDatabaseIfNotExists($databaseName, $serverName, $userName, $password) {
 		try {
 			mysql_connect($serverName, $userName, $password);
 			$query = "CREATE DATABASE IF NOT EXISTS " . $databaseName . ";";
@@ -482,8 +563,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	 *
 	 * @return boolean
 	 */
-	private function databaseExists($databaseName, $serverName, $userName, $password)
-	{
+	private function databaseExists($databaseName, $serverName, $userName, $password) {
 		try {
 			$conn = \mysql_connect($serverName, $userName, $password);
 			// make foo the current db
@@ -507,8 +587,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 	/**
 	 * @return string[]
 	 */
-	public function __sleep()
-	{
+	public function __sleep() {
 		return array(
 			'entityNamespace',
 			'proxyDir',
@@ -524,4 +603,5 @@ class DomainConfig extends \Foomo\Config\AbstractConfig
 			'createDbIfNotExists'
 		);
 	}
+
 }
