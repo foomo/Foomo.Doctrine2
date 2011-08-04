@@ -324,15 +324,17 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 
 			$connection = $this->getConnection();
 
+			if ($connection) {
+				$this->entityManager = \Doctrine\ORM\EntityManager::create($connection->getParams(), $config);
 
-			$this->entityManager = \Doctrine\ORM\EntityManager::create($connection->getParams(), $config);
-			$this->entityManager->getConnection()->setCharset('utf8');
+				$this->entityManager->getConnection()->setCharset('utf8');
 
-			if ($this->autoExportSchema) {
-				$this->exportSchema();
+				if ($this->autoExportSchema) {
+					$this->exportSchema();
+				}
+
+				return $this->entityManager;
 			}
-
-			return $this->entityManager;
 		} else {
 			return $this->entityManager;
 		}
