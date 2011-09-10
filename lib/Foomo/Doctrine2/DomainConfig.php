@@ -99,6 +99,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * must implement the Doctrine\Common\Cache\Cache  interface. Select from:
 	 *
 	 * \Doctrine\Common\Cache\ApcCache
+	 * \Doctrine\Common\Cache\ArrayCache
 	 * \Doctrine\Common\Cache\MemcacheCache
 	 * \Doctrine\Common\Cache\XcacheCache
 	 *
@@ -111,6 +112,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * query cache implementation - optional
 	 * Select from:
 	 * \Doctrine\Common\Cache\ApcCache
+	 * \Doctrine\Common\Cache\ArrayCache
 	 * \Doctrine\Common\Cache\MemcacheCache
 	 * \Doctrine\Common\Cache\XcacheCache
 	 *
@@ -146,12 +148,12 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	public $createDbIfNotExists = true;
 	/**
 	 * cache for tablenames
-	 * @var array 
+	 * @var array
 	 */
 	private $tableNames;
 	/**
 	 * cache of model metadata
-	 * @var array 
+	 * @var array
 	 */
 	private $classes;
 
@@ -214,7 +216,7 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * return entity manager for this domain configuration
 	 *
 	 * @param $forceCreateNew boolean forces the creation of a new entity manager using a new db connection
-	 * @return \Doctrine\ORM\EntityManager
+	 * @return Doctrine\ORM\EntityManager
 	 */
 	public function getEntityManager($forceCreateNew = false) {
 
@@ -277,6 +279,10 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 					$cache = new \Doctrine\Common\Cache\XcacheCache();
 					$config->setMetadataCacheImpl($cache);
 					break;
+				case $this->cacheImplementation == '\Doctrine\Common\Cache\ArrayCache':
+					$cache = new \Doctrine\Common\Cache\ArrayCache();
+					$config->setMetadataCacheImpl($cache);
+					break;
 				case $this->cacheImplementation == null:
 					//if not set do nothing
 					break;
@@ -301,6 +307,10 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 					break;
 				case $this->queryCacheImplementation == '\Doctrine\Common\Cache\XcacheCache':
 					$queryCache = new \Doctrine\Common\Cache\XcacheCache();
+					$config->setQueryCacheImpl($queryCache);
+					break;
+				case $this->queryCacheImplementation == '\Doctrine\Common\Cache\ArrayCache':
+					$queryCache = new \Doctrine\Common\Cache\ArrayCache();
 					$config->setQueryCacheImpl($queryCache);
 					break;
 				case $this->queryCacheImplementation == null:
