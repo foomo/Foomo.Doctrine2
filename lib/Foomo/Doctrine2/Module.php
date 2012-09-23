@@ -31,30 +31,13 @@ class Module extends \Foomo\Modules\ModuleBase
 	//---------------------------------------------------------------------------------------------
 
 	/**
-	 * the name of this module
+	 * The name of this module
 	 */
 	const NAME = 'Foomo.Doctrine2';
 
 	//---------------------------------------------------------------------------------------------
 	// ~ Public static methods
 	//---------------------------------------------------------------------------------------------
-
-	/**
-	 * Your module needs to be set up, before being used - this is the place to do it
-	 */
-	public static function initializeModule()
-	{
-	}
-
-	/**
-	 * @return string[]
-	 */
-	public static function getIncludePaths()
-	{
-		return array(
-			\Foomo\CORE_CONFIG_DIR_MODULES . DIRECTORY_SEPARATOR . self::NAME . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'doctrine-orm'
-		);
-	}
 
 	/**
 	 * Get a plain text description of what this module does
@@ -67,14 +50,17 @@ class Module extends \Foomo\Modules\ModuleBase
 	}
 
 	/**
-	 * get all the module resources
+	 * Get all the module resources
 	 *
 	 * @return Foomo\Modules\Resource[]
 	 */
 	public static function getResources()
 	{
 		return array(
-			\Foomo\Modules\Resource\Module::getResource('Foomo', self::VERSION)
+			\Foomo\Modules\Resource\Module::getResource('Foomo', self::VERSION),
+			\Foomo\Modules\Resource\ClassName::getResource('Doctrine\Common\Version'), // Doctrine Common
+			\Foomo\Modules\Resource\ClassName::getResource('Doctrine\DBAL\Version'), // Doctrine DBAL
+			\Foomo\Modules\Resource\ClassName::getResource('Doctrine\ORM\Version'), // Doctrine ORM
 		);
 	}
 }
