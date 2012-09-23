@@ -34,6 +34,7 @@ class Module extends \Foomo\Modules\ModuleBase
 	 * The name of this module
 	 */
 	const NAME = 'Foomo.Doctrine2';
+	const VERSION = '2.3.0';
 
 	//---------------------------------------------------------------------------------------------
 	// ~ Public static methods
@@ -57,7 +58,7 @@ class Module extends \Foomo\Modules\ModuleBase
 	public static function getResources()
 	{
 		return array(
-			\Foomo\Modules\Resource\Module::getResource('Foomo', self::VERSION),
+			\Foomo\Modules\Resource\Module::getResource('Foomo', '0.3.0'),
 			\Foomo\Modules\Resource\ClassName::getResource('Doctrine\Common\Version'), // Doctrine Common
 			\Foomo\Modules\Resource\ClassName::getResource('Doctrine\DBAL\Version'), // Doctrine DBAL
 			\Foomo\Modules\Resource\ClassName::getResource('Doctrine\ORM\Version'), // Doctrine ORM

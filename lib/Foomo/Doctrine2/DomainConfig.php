@@ -24,7 +24,8 @@ namespace Foomo\Doctrine2;
  * @license www.gnu.org/licenses/lgpl.txt
  * @author bostjan <bostjan.marusic@bestbytes.de>
  */
-class DomainConfig extends \Foomo\Config\AbstractConfig {
+class DomainConfig extends \Foomo\Config\AbstractConfig
+{
 	//---------------------------------------------------------------------------------------------
 	// ~ Constants
 	//---------------------------------------------------------------------------------------------
@@ -164,7 +165,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	/**
 	 * constructor. does nothing.
 	 */
-	public function __construct() {
+	public function __construct()
+	{
 		$this->getEntityManager();
 	}
 
@@ -179,16 +181,14 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 *
 	 * @return Doctrine\DBAL\Connection
 	 */
-	public function getConnection() {
-
+	public function getConnection()
+	{
 		$type = null;
 		if (isset($this->dsn)) {
 			$this->parseConfig($this->dsn, $serverName, $dbName, $userName, $password);
 			$type = preg_replace('/^(.+):\/\/.+/i', '$1', $this->dsn);
 			//check if database type is supported
-			if ($type != 'mysql') {
-				throw new UnsupportedDatabaseTypeException('Specified database type ' . $type . ' in the doctrine 2 domain config is not supported.');
-			}
+			if ($type != 'mysql') throw new UnsupportedDatabaseTypeException('Specified database type ' . $type . ' in the doctrine 2 domain config is not supported.');
 			//TODO: handle other db types here: now mysql only
 			//create DBAL connection
 			if ($type == 'mysql') {
@@ -218,7 +218,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * @param $forceCreateNew boolean forces the creation of a new entity manager using a new db connection
 	 * @return Doctrine\ORM\EntityManager
 	 */
-	public function getEntityManager($forceCreateNew = false) {
+	public function getEntityManager($forceCreateNew = false)
+	{
 
 		//if forcing new entity manager, release the old connection first
 		if ($forceCreateNew == true && isset($this->entityManager)) {
@@ -357,14 +358,16 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * due to exception etc
 	 *
 	 */
-	public function resetEntityManager() {
+	public function resetEntityManager()
+	{
 		$this->getEntityManager(true);
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getDoctrineProxyDir() {
+	public function getDoctrineProxyDir()
+	{
 		//var_dump(\Foomo\CORE_CONFIG_DIR_MODULES . DIRECTORY_SEPARATOR . $this->proxyDir);
 		return \Foomo\CORE_CONFIG_DIR_MODULES . DIRECTORY_SEPARATOR . $this->proxyDir;
 	}
@@ -374,7 +377,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 *
 	 * note: the db must exist at the time of the call
 	 */
-	public function exportSchema() {
+	public function exportSchema()
+	{
 		//if ($this->databaseExists($databaseName, $serverName, $userName, $password);
 		$classes = $this->getOwnClasses();
 		$tool = new \Doctrine\ORM\Tools\SchemaTool($this->entityManager);
@@ -387,7 +391,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * drop the scema if it exists
 	 *
 	 */
-	public function dropSchema() {
+	public function dropSchema()
+	{
 		$this->entityManager = $this->getEntityManager();
 		$classes = $this->getOwnClasses();
 		$tool = new \Doctrine\ORM\Tools\SchemaTool($this->entityManager);
@@ -402,7 +407,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * @internal
 	 * @return array
 	 */
-	public function getValue() {
+	public function getValue()
+	{
 		$ret = array();
 		foreach ($this as $prop => $value) {
 			switch ($prop) {
@@ -419,7 +425,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * Validate the schema definitions in our model classes.
 	 * @return boolean true if the schema definitions are valid
 	 */
-	public function validateSchema() {
+	public function validateSchema()
+	{
 		$validator = new \Doctrine\ORM\Tools\SchemaValidator($this->getEntityManager());
 		$errors = $validator->validateMapping();
 		if (count($errors) > 0) {
@@ -434,7 +441,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * Returns an array of Metadata of all model classes.
 	 * @return \Doctrine\ORM\Mapping\ClassMetadata[] array of metadata information for each model class
 	 */
-	public function getModelClasses() {
+	public function getModelClasses()
+	{
 		if (!isset($this->classes)) {
 			$this->classes = array();
 			$factory = new \Doctrine\ORM\Mapping\ClassMetadataFactory();
@@ -448,7 +456,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 * Deletes the contents of all tables. Use it for tests only!
 	 * @note the entity manager is closed finally, so any references got by a former call of self::getEM() are obsolet now
 	 */
-	public function truncateTables() {
+	public function truncateTables()
+	{
 		if (empty($this->tableNames)) {
 			$this->tableNames = array();
 			foreach ($this->getModelClasses() as $classMetadata) {
@@ -486,10 +495,15 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 		$this->getEntityManager(true);
 	}
 
+	//---------------------------------------------------------------------------------------------
+	// Public static methods
+	//---------------------------------------------------------------------------------------------
+
 	/**
 	 * Creates proxy classes for all entities (model classes)
 	 */
-	public static function createProxies() {
+	public static function createProxies()
+	{
 		$factory = $this->entityManager->getProxyFactory();
 		$factory->generateProxyClasses($this->getModelClasses());
 	}
@@ -501,7 +515,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	/**
 	 * @return array
 	 */
-	private function getOwnClasses() {
+	private function getOwnClasses()
+	{
 		$classes = array();
 		$classMap = \Foomo\AutoLoader::getClassMap();
 		foreach ($classMap as $className => $file) {
@@ -528,7 +543,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 *
 	 * @return Doctrine\DBAL\Connection
 	 */
-	private function parseConfig($dsn, &$serverName, &$dbName, &$username, &$password) {
+	private function parseConfig($dsn, &$serverName, &$dbName, &$username, &$password)
+	{
 		$parsed = \parse_url($dsn);
 		$type = $parsed['scheme'];
 		if ($parsed['scheme'] != 'mysql')
@@ -547,7 +563,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 *
 	 * @param string $databaseName
 	 */
-	private function createMySQLDatabaseIfNotExists($databaseName, $serverName, $userName, $password) {
+	private function createMySQLDatabaseIfNotExists($databaseName, $serverName, $userName, $password)
+	{
 		try {
 			mysql_connect($serverName, $userName, $password);
 			$query = "CREATE DATABASE IF NOT EXISTS " . $databaseName . ";";
@@ -575,7 +592,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	 *
 	 * @return boolean
 	 */
-	private function databaseExists($databaseName, $serverName, $userName, $password) {
+	private function databaseExists($databaseName, $serverName, $userName, $password)
+	{
 		try {
 			$conn = \mysql_connect($serverName, $userName, $password);
 			// make foo the current db
@@ -599,7 +617,8 @@ class DomainConfig extends \Foomo\Config\AbstractConfig {
 	/**
 	 * @return string[]
 	 */
-	public function __sleep() {
+	public function __sleep()
+	{
 		return array(
 			'entityNamespace',
 			'proxyDir',
